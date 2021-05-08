@@ -9,6 +9,9 @@ import GitHubIcon from '@material-ui/icons/GitHub';
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import Link from '@material-ui/core/Link';
+import Menu from "@material-ui/core/Menu";
+import MenuItem from "@material-ui/core/MenuItem";
+import ky from "ky";
 
 const useStyles = makeStyles((theme) => ({
     header: {
@@ -94,11 +97,49 @@ const useStyles = makeStyles((theme) => ({
 export default function SearchAppBar() {
     const classes = useStyles();
     const [value, setValue] = useState(0);
-    const [profile, setProfile] = useState(1);
+    const [anchorEl, setAnchorEl] = React.useState(null);
     const jwt_token = document.cookie.replace(/(?:(?:^|.*;\s*)jwt\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+    const refresh_token = document.cookie.replace(/(?:(?:^|.*;\s*)refreshToken\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+    const handleClick = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
+    const logout = async () => {
+        setAnchorEl(null);
+        await ky.post("http://127.0.0.1:5000/Users/revoke-token", {
+            json: {
+                "email": profile.email,
+                "token": refresh_token
+            },
+            hooks: {
+                beforeRequest: [
+                    request => {
+                        request.headers.set('Authorization', `Bearer ${jwt_token}`)
+                    }
+
+                ]
+            }
+        }).then(resp => resp.json()).then((data) => setProfile(data)).catch(console.log);
+        document.cookie.split(";").forEach(function (c) {
+            document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+        window.location.href = "/"
+    };
+    const [profile, setProfile] = useState('');
     useEffect(async () => {
-        // await ky.get('http://127.0.0.1:5000/Users/self',{"headers": {"accept": "text/plain", "authorization": `Bearer ${jwt_token}`}
-        // }).then(resp => resp.json()).then((data) => setProfile(data)).catch(console.log);
+        await ky.get("http://127.0.0.1:5000/Users/self", {
+            hooks: {
+                beforeRequest: [
+                    request => {
+                        request.headers.set('Authorization', `Bearer ${jwt_token}`)
+                    }
+
+                ]
+            }
+        }).then(resp => resp.json()).then((data) => setProfile(data)).catch(console.log);
+
     }, [])
 
     function search(e) {
@@ -134,10 +175,24 @@ export default function SearchAppBar() {
                         />
                     </div>
                     {
-                        profile.pic ? <Link href="/user/me"><Avatar alt="CourseWiki" src={profile ? profile.pic : ""}
-                                                                    className={classes.user}/></Link> :
+                        profile ? <Link onClick={handleClick}><Avatar alt="CourseWiki" className={classes.user}
+                                                                      src={profile ? profile.pic : ""}>{profile.nickName.substring(0, 2).toUpperCase()}</Avatar>
+                            </Link> :
                             <Button variant="outlined" href="/login" className={classes.login}>Log In</Button>
+
                     }
+                    <Menu
+                        id="simple-menu"
+                        anchorEl={anchorEl}
+                        getContentAnchorEl={null}
+                        open={Boolean(anchorEl)}
+                        anchorOrigin={{vertical: "bottom", horizontal: "center"}}
+                        transformOrigin={{vertical: "top", horizontal: "center"}}
+                        onClose={handleClose}
+                    >
+                        <MenuItem component='a' href={"/user"}>Profile</MenuItem>
+                        <MenuItem onClick={logout}>Logout</MenuItem>
+                    </Menu>
                 </Toolbar>
             </AppBar>
         </div>
