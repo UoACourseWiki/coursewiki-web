@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from "react";
+import React, {Fragment, useEffect, useState} from "react";
 import SearchAppBar from './header';
 import Home from './home';
 import Search from './search';
@@ -12,6 +12,7 @@ import Join from "./join";
 import PasswordReset from "./password_reset";
 import EmailValidate from "./emailvalidate";
 import Reset from "./reset";
+import ky from "ky";
 
 const useStyles = makeStyles((theme) => ({
     notFound: {
@@ -24,17 +25,22 @@ const useStyles = makeStyles((theme) => ({
 
 export default function App() {
     const classes = useStyles();
+    const [profile, setProfile] = useState('');
+    const jwt_token = document.cookie.replace(/(?:(?:^|.*;\s*)jwt\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+    const refresh_token = document.cookie.replace(/(?:(?:^|.*;\s*)refreshToken\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+    useEffect(async () => {
+        await ky.get("http://127.0.0.1:5000/Users/self", {
+            hooks: {
+                beforeRequest: [
+                    request => {
+                        request.headers.set('Authorization', `Bearer ${jwt_token}`)
+                    }
 
-    const [message, setMessage] = useState(true);
+                ]
+            }
+        }).then(resp => resp.json()).then((data) => setProfile(data)).catch(console.log);
 
-    function saveLogin() {
-        var query = new URLSearchParams(window.location.search);
-        var token = query.get("token");
-        if (token && token.length > 0) localStorage.setItem("token", token);
-        setMessage(false);
-        window.location.href = "/";
-    }
-
+    }, []);
     return (
         <div>
             <Router>
@@ -55,7 +61,7 @@ export default function App() {
                         <Reset/>
                     </Route>
                     <Fragment>
-                        <SearchAppBar/>
+                        <SearchAppBar profile={profile}/>
                         <Route exact path="/">
                             <Home/>
                         </Route>
@@ -69,10 +75,9 @@ export default function App() {
                             <Course/>
                         </Route>
                         <Route path="/user/:query">
-                            <User/>
-                        </Route>
-                        <Route path="/user/me">
-                            <User/>
+                            <Route path="/user/me">
+                                <User profile={profile}/>
+                            </Route>
                         </Route>
                     </Fragment>
                     <Route>

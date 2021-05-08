@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
@@ -94,7 +94,7 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-export default function SearchAppBar() {
+export default function SearchAppBar(props) {
     const classes = useStyles();
     const [value, setValue] = useState(0);
     const [anchorEl, setAnchorEl] = React.useState(null);
@@ -110,7 +110,7 @@ export default function SearchAppBar() {
         setAnchorEl(null);
         await ky.post("http://127.0.0.1:5000/Users/revoke-token", {
             json: {
-                "email": profile.email,
+                "email": props.profile.email,
                 "token": refresh_token
             },
             hooks: {
@@ -121,26 +121,12 @@ export default function SearchAppBar() {
 
                 ]
             }
-        }).then(resp => resp.json()).then((data) => setProfile(data)).catch(console.log);
+        }).then(resp => resp.json()).catch(console.log);
         document.cookie.split(";").forEach(function (c) {
             document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
         window.location.href = "/"
     };
-    const [profile, setProfile] = useState('');
-    useEffect(async () => {
-        await ky.get("http://127.0.0.1:5000/Users/self", {
-            hooks: {
-                beforeRequest: [
-                    request => {
-                        request.headers.set('Authorization', `Bearer ${jwt_token}`)
-                    }
-
-                ]
-            }
-        }).then(resp => resp.json()).then((data) => setProfile(data)).catch(console.log);
-
-    }, [])
 
     function search(e) {
         if (e.keyCode == 13) window.location.href = "/search/" + e.target.value
@@ -175,8 +161,8 @@ export default function SearchAppBar() {
                         />
                     </div>
                     {
-                        profile ? <Link onClick={handleClick}><Avatar alt="CourseWiki" className={classes.user}
-                                                                      src={profile ? profile.pic : ""}>{profile.nickName.substring(0, 2).toUpperCase()}</Avatar>
+                        props.profile ? <Link onClick={handleClick}><Avatar alt="CourseWiki" className={classes.user}
+                                                                            src={props.profile ? props.profile.pic : ""}>{props.profile.nickName.substring(0, 2).toUpperCase()}</Avatar>
                             </Link> :
                             <Button variant="outlined" href="/login" className={classes.login}>Log In</Button>
 
@@ -190,7 +176,7 @@ export default function SearchAppBar() {
                         transformOrigin={{vertical: "top", horizontal: "center"}}
                         onClose={handleClose}
                     >
-                        <MenuItem component='a' href={"/user"}>Profile</MenuItem>
+                        <MenuItem component='a' href={"/user/me"}>Profile</MenuItem>
                         <MenuItem onClick={logout}>Logout</MenuItem>
                     </Menu>
                 </Toolbar>
