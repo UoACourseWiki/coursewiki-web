@@ -2,10 +2,7 @@ import React, {useState} from "react";
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import TextField from '@material-ui/core/TextField';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Checkbox from '@material-ui/core/Checkbox';
 import Link from '@material-ui/core/Link';
-import Grid from '@material-ui/core/Grid';
 import Box from '@material-ui/core/Box';
 import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
@@ -15,6 +12,7 @@ import Container from '@material-ui/core/Container';
 import ky from "ky";
 import IconButton from "@material-ui/core/IconButton";
 import CloseIcon from '@material-ui/icons/Close';
+import type {Profile} from './App';
 
 function Copyright() {
     return (
@@ -49,34 +47,55 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-export default function Login() {
+export default function User(props: { profile: Profile }) {
     const classes = useStyles();
     const [email, SetEmail] = useState('');
+    const [nickName, SetNickName] = useState('');
     const [password, SetPassword] = useState('');
+    const [oldPassword, SetOldPassword] = useState('');
+    const [alertMessage, SetAlertMessage] = useState('');
     const [succeedMessage, SetSucceedMessage] = useState(false);
     const [failedMessage, SetFailedMessage] = useState(false);
-    const [alertMessage, SetAlertMessage] = useState('');
     const [isWaiting, SetIsWaiting] = useState(false);
-    const handleSubmit = async (event) => {
+    const jwt_token = document.cookie.replace(/(?:(?:^|.*;\s*)jwt\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+
+    function CleanReq(obj: { [x: string]: any; nickName?: string; email?: string; oldPassword?: string; password?: string; confirmPassword?: string; }) {
+        var propNames = Object.getOwnPropertyNames(obj);
+        for (var i = 0; i < propNames.length; i++) {
+            var propName = propNames[i];
+            if (obj[propName] === null || obj[propName] === undefined || obj[propName] === "") {
+                delete obj[propName];
+            }
+        }
+        return obj;
+    }
+
+    const handleSubmit = async (event: { preventDefault: () => void; }) => {
         event.preventDefault();
-        await ky.post("http://127.0.0.1:5000/Users/authenticate", {
-            json: {
+        SetIsWaiting(true)
+        await ky.put("http://127.0.0.1:5000/Users/" + props.profile.id, {
+            json: CleanReq({
+                "nickName": nickName,
                 "email": email,
-                "password": password
-            },
+                "oldPassword": oldPassword,
+                "password": password,
+                "confirmPassword": password
+            }),
             hooks: {
+                beforeRequest: [
+                    request => {
+                        request.headers.set('Authorization', `Bearer ${jwt_token}`)
+                    }
+
+                ],
                 afterResponse: [
                     async (request, options, response) => {
-                        if (response.status === 401) {
+                        if (response.status === 401 || response.status === 400) {
                             await response.json().then((data) => SetAlertMessage(data.message));
                             SetIsWaiting(false);
                             SetFailedMessage(true);
                         } else if (response.status === 200) {
-                            await response.json().then((data) => {
-                                SetAlertMessage("SuccessFully Logged In!")
-                                document.cookie = `jwt=${data.jwtToken}`;
-                                document.cookie = `refreshToken=${data.refreshToken}`;
-                            });
+                            await response.json().then((data) => SetAlertMessage(data.message));
                             SetFailedMessage(false);
                             SetSucceedMessage(true);
                         } else {
@@ -100,7 +119,7 @@ export default function Login() {
                 {/*    <LockOutlinedIcon />*/}
                 {/*</Avatar>*/}
                 <Typography component="h1" variant="h5">
-                    Sign in to CourseWiki
+                    Edit your profile and Password
                 </Typography>
                 <Snackbar open={succeedMessage} autoHideDuration={1000}>
                     <MuiAlert elevation={6} variant="filled" severity="success" action={<IconButton
@@ -129,9 +148,33 @@ export default function Login() {
                 </Snackbar>
                 <form className={classes.form}>
                     <TextField
+                        autoComplete="name"
+                        name="nickName"
+                        margin="normal"
+                        variant="outlined"
+                        fullWidth
+                        id="nickName"
+                        label="Nickname"
+                        autoFocus
+                        value={nickName}
+                        onChange={e => SetNickName(e.target.value)}
+                    />
+                    <TextField
                         variant="outlined"
                         margin="normal"
                         required
+                        fullWidth
+                        name="password"
+                        label="Old Password"
+                        type="password"
+                        id="oldPassword"
+                        autoComplete="current-password"
+                        value={oldPassword}
+                        onChange={e => SetOldPassword(e.target.value)}
+                    />
+                    <TextField
+                        variant="outlined"
+                        margin="normal"
                         fullWidth
                         id="email"
                         label="Email Address"
@@ -144,7 +187,6 @@ export default function Login() {
                     <TextField
                         variant="outlined"
                         margin="normal"
-                        required
                         fullWidth
                         name="password"
                         label="Password"
@@ -154,10 +196,17 @@ export default function Login() {
                         value={password}
                         onChange={e => SetPassword(e.target.value)}
                     />
-                    <FormControlLabel
-                        control={<Checkbox value="remember" color="primary"/>}
-                        label="Remember me"
+                    <TextField
+                        variant="outlined"
+                        margin="normal"
+                        fullWidth
+                        name="password"
+                        label="Repeat Password"
+                        type="password"
+                        id="password"
+                        autoComplete="current-password"
                     />
+
                     <Button
                         type="submit"
                         fullWidth
@@ -167,20 +216,8 @@ export default function Login() {
                         onClick={handleSubmit}
                         disabled={isWaiting}
                     >
-                        Sign In
+                        Update Information
                     </Button>
-                    <Grid container>
-                        <Grid item xs>
-                            <Link href="/password_reset" variant="body2">
-                                Forgot password?
-                            </Link>
-                        </Grid>
-                        <Grid item>
-                            <Link href="/join" variant="body2">
-                                {"Don't have an account? Sign Up"}
-                            </Link>
-                        </Grid>
-                    </Grid>
                 </form>
             </div>
             <Box mt={8}>

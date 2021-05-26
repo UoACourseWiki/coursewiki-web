@@ -44,39 +44,41 @@ const useStyles = makeStyles((theme) => ({
 
 export default function EmailValidate() {
     const classes = useStyles();
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(window.location.search);
     const email = params.get("email");
     const token = params.get("token");
     const [succeedMessage, SetSucceedMessage] = useState(false);
     const [failedMessage, SetFailedMessage] = useState(false);
     const [alertMessage, SetAlertMessage] = useState('');
 
-    useEffect(async () => {
-        await ky.post("http://127.0.0.1:5000/Users/verify-email", {
-            json: {
-                "email": email,
-                "token": token
-            },
-            hooks: {
-                afterResponse: [
-                    async (request, options, response) => {
-                        if (response.status === 200) {
-                            await response.json().then((data) => SetAlertMessage(data.message));
-                            SetFailedMessage(false);
-                            SetSucceedMessage(true);
-                        } else if (response.status === 401) {
-                            await response.json().then((data) => SetAlertMessage(data.message));
-                            SetFailedMessage(true);
-                        } else {
-                            SetAlertMessage("Unknown Error please try again!");
-                            SetFailedMessage(true);
+    useEffect(() => {
+        (async () => {
+            await ky.post("http://127.0.0.1:5000/Users/verify-email", {
+                json: {
+                    "email": email,
+                    "token": token
+                },
+                hooks: {
+                    afterResponse: [
+                        async (request, options, response) => {
+                            if (response.status === 200) {
+                                await response.json().then((data) => SetAlertMessage(data.message));
+                                SetFailedMessage(false);
+                                SetSucceedMessage(true);
+                            } else if (response.status === 401) {
+                                await response.json().then((data) => SetAlertMessage(data.message));
+                                SetFailedMessage(true);
+                            } else {
+                                SetAlertMessage("Unknown Error please try again!");
+                                SetFailedMessage(true);
+                            }
                         }
-                    }
-                ]
-            }
-        }).then(resp => resp.json()).catch((err) => {
-            console.log(err);
-        });
+                    ]
+                }
+            }).then(resp => resp.json()).catch((err) => {
+                console.log(err);
+            });
+        })()
     }, [])
     return (
         <Container component="main" maxWidth="xs">

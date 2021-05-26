@@ -46,54 +46,23 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-export default function User(props) {
+export default function PasswordReset() {
     const classes = useStyles();
     const [email, SetEmail] = useState('');
-    const [nickName, SetNickName] = useState('');
-    const [password, SetPassword] = useState('');
-    const [oldPassword, SetOldPassword] = useState('');
-    const [alertMessage, SetAlertMessage] = useState('');
     const [succeedMessage, SetSucceedMessage] = useState(false);
     const [failedMessage, SetFailedMessage] = useState(false);
+    const [alertMessage, SetAlertMessage] = useState('');
     const [isWaiting, SetIsWaiting] = useState(false);
-    const jwt_token = document.cookie.replace(/(?:(?:^|.*;\s*)jwt\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-
-    function CleanReq(obj) {
-        var propNames = Object.getOwnPropertyNames(obj);
-        for (var i = 0; i < propNames.length; i++) {
-            var propName = propNames[i];
-            if (obj[propName] === null || obj[propName] === undefined || obj[propName] === "") {
-                delete obj[propName];
-            }
-        }
-        return obj;
-    }
-
-    const handleSubmit = async (event) => {
+    const handleSubmit = async (event: { preventDefault: () => void; }) => {
         event.preventDefault();
-        SetIsWaiting(true)
-        await ky.put("http://127.0.0.1:5000/Users/" + props.profile.id, {
-            json: CleanReq({
-                "nickName": nickName,
-                "email": email,
-                "oldPassword": oldPassword,
-                "password": password,
-                "confirmPassword": password
-            }),
+        await ky.post("http://127.0.0.1:5000/Users/forgot-password", {
+            json: {
+                "email": email
+            },
             hooks: {
-                beforeRequest: [
-                    request => {
-                        request.headers.set('Authorization', `Bearer ${jwt_token}`)
-                    }
-
-                ],
                 afterResponse: [
                     async (request, options, response) => {
-                        if (response.status === 401 || response.status === 400) {
-                            await response.json().then((data) => SetAlertMessage(data.message));
-                            SetIsWaiting(false);
-                            SetFailedMessage(true);
-                        } else if (response.status === 200) {
+                        if (response.status === 200) {
                             await response.json().then((data) => SetAlertMessage(data.message));
                             SetFailedMessage(false);
                             SetSucceedMessage(true);
@@ -118,7 +87,7 @@ export default function User(props) {
                 {/*    <LockOutlinedIcon />*/}
                 {/*</Avatar>*/}
                 <Typography component="h1" variant="h5">
-                    Edit your profile and Password
+                    Reset your password
                 </Typography>
                 <Snackbar open={succeedMessage} autoHideDuration={1000}>
                     <MuiAlert elevation={6} variant="filled" severity="success" action={<IconButton
@@ -128,6 +97,7 @@ export default function User(props) {
                         onClick={() => {
                             SetSucceedMessage(false);
                             window.location.href = "/";
+
                         }}
                     >
                         <CloseIcon fontSize="inherit"/>
@@ -147,33 +117,9 @@ export default function User(props) {
                 </Snackbar>
                 <form className={classes.form}>
                     <TextField
-                        autoComplete="name"
-                        name="nickName"
-                        margin="normal"
-                        variant="outlined"
-                        fullWidth
-                        id="nickName"
-                        label="Nickname"
-                        autoFocus
-                        value={nickName}
-                        onChange={e => SetNickName(e.target.value)}
-                    />
-                    <TextField
                         variant="outlined"
                         margin="normal"
                         required
-                        fullWidth
-                        name="password"
-                        label="Old Password"
-                        type="password"
-                        id="oldPassword"
-                        autoComplete="current-password"
-                        value={oldPassword}
-                        onChange={e => SetOldPassword(e.target.value)}
-                    />
-                    <TextField
-                        variant="outlined"
-                        margin="normal"
                         fullWidth
                         id="email"
                         label="Email Address"
@@ -183,29 +129,6 @@ export default function User(props) {
                         value={email}
                         onChange={e => SetEmail(e.target.value)}
                     />
-                    <TextField
-                        variant="outlined"
-                        margin="normal"
-                        fullWidth
-                        name="password"
-                        label="Password"
-                        type="password"
-                        id="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={e => SetPassword(e.target.value)}
-                    />
-                    <TextField
-                        variant="outlined"
-                        margin="normal"
-                        fullWidth
-                        name="password"
-                        label="Repeat Password"
-                        type="password"
-                        id="password"
-                        autoComplete="current-password"
-                    />
-
                     <Button
                         type="submit"
                         fullWidth
@@ -215,7 +138,7 @@ export default function User(props) {
                         onClick={handleSubmit}
                         disabled={isWaiting}
                     >
-                        Update Information
+                        Send password reset email
                     </Button>
                 </form>
             </div>

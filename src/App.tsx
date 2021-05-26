@@ -22,24 +22,34 @@ const useStyles = makeStyles((theme) => ({
         transform: "translate(-50%,-50%)"
     }
 }));
-
+export type Profile = {
+    id: string;
+    nickName: string;
+    email: string;
+    roles: Array<string>;
+    created: Date;
+    updated: Date;
+    isVerified: boolean;
+}
 export default function App() {
     const classes = useStyles();
-    const [profile, setProfile] = useState('');
+    const [userProfile, SetUserProfile] = useState<Profile>();
     const jwt_token = document.cookie.replace(/(?:(?:^|.*;\s*)jwt\s*\=\s*([^;]*).*$)|^.*$/, "$1");
     const refresh_token = document.cookie.replace(/(?:(?:^|.*;\s*)refreshToken\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-    useEffect(async () => {
-        await ky.get("http://127.0.0.1:5000/Users/self", {
-            hooks: {
-                beforeRequest: [
-                    request => {
-                        request.headers.set('Authorization', `Bearer ${jwt_token}`)
-                    }
+    useEffect(() => {
+        (async () => {
+            await ky.get("http://127.0.0.1:5000/Users/self", {
+                hooks: {
+                    beforeRequest: [
+                        request => {
+                            request.headers.set('Authorization', `Bearer ${jwt_token}`)
+                        }
 
-                ]
-            }
-        }).then(resp => resp.json()).then((data) => setProfile(data)).catch(console.log);
+                    ]
+                }
+            }).then(resp => resp.json()).then((data) => SetUserProfile(data)).catch(console.log);
 
+        })()
     }, []);
     return (
         <div>
@@ -61,7 +71,7 @@ export default function App() {
                         <Reset/>
                     </Route>
                     <Fragment>
-                        <SearchAppBar profile={profile}/>
+                        <SearchAppBar profile={userProfile as Profile}/>
                         <Route exact path="/">
                             <Home/>
                         </Route>
@@ -76,7 +86,7 @@ export default function App() {
                         </Route>
                         <Route path="/user/:query">
                             <Route path="/user/me">
-                                <User profile={profile}/>
+                                <User profile={userProfile as Profile}/>
                             </Route>
                         </Route>
                     </Fragment>

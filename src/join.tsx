@@ -58,7 +58,7 @@ export default function Join() {
     const [succeedMessage, SetSucceedMessage] = useState(false);
     const [failedMessage, SetFailedMessage] = useState(false);
     const [isWaiting, SetIsWaiting] = useState(false);
-    const handleSubmit = async (event) => {
+    const handleSubmit = async (event: { preventDefault: () => void; }) => {
         event.preventDefault();
         SetIsWaiting(true)
         await ky.post("http://127.0.0.1:5000/Users/register", {

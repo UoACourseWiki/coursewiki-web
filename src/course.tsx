@@ -59,41 +59,83 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
+type Crse = {
+    catalogNbr: string;
+    crseId: string;
+    description: string;
+    id: string;
+    rqrmntDescr: string;
+    subject: string;
+    terms: Array<string>;
+    title: string;
+}
+
+type Semester = {
+    canvasLink: string;
+    crseId: string;
+    examLink: string;
+    id: string;
+    sections: Array<string>;
+    syllabusLink: string;
+    term: string;
+}
+type Section = {
+    classSection: string;
+    component: string;
+    consent: string;
+    crseId: string;
+    dropConsent: string;
+    id: string;
+    meetingPatterns: Array<MeetingPattern>;
+    term: string;
+}
+type MeetingPattern = {
+    startDate: string;
+    endDate: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    daysOfWeek: string;
+    meetingNumber: number;
+
+}
 export default function Course() {
 
-    const [course, setCourse] = useState('');
-    const [semester, setSemester] = useState('');
-    const [section, setSection] = useState('');
+    const [course, setCourse] = useState<Crse>();
+    const [semester, setSemester] = useState<Semester>();
+    const [section, setSection] = useState<Section>();
     const [semesterSelected, setSemesterSelected] = useState('');
     const [sectionSelected, setSectionSelected] = useState('');
     const query = window.location.pathname.substring(7);
     const ref = React.createRef;
-    const handleChangeSemester = async (event) => {
-        await ky.get("http://127.0.0.1:5000/Courses" + query + `/${event.target.value}`).then(resp => resp.json()).then((data) => setSemester(data)).catch(() => {
-            window.location.href = "/"
+    const handleChangeSemester = async (event: React.ChangeEvent<{ value: unknown }>) => {
+        await ky.get("http://127.0.0.1:5000/Courses" + query + `/${event.target.value as string}`).then(resp => resp.json()).then((data) => setSemester(data)).catch(() => {
+            window.location.href = "/";
         });
-        setSemesterSelected(event.target.value);
+        setSemesterSelected(event.target.value as string);
         setSectionSelected("");
 
     };
-    const handleChangeSection = async (event) => {
+    const handleChangeSection = async (event: React.ChangeEvent<{ value: unknown }>) => {
         await ky.get("http://127.0.0.1:5000/Courses" + query + `/${semesterSelected}/${event.target.value}`).then(resp => resp.json()).then((data) => setSection(data)).catch(() => {
-            window.location.href = "/"
+            window.location.href = "/";
         });
-        setSectionSelected(event.target.value);
+        setSectionSelected(event.target.value as string);
     };
 
 
     const classes = useStyles();
 
-    useEffect(async () => {
-        await ky.get("http://127.0.0.1:5000/Courses" + query).then(resp => resp.json()).then((data) => setCourse(data)).catch(() => {
-            window.location.href = "/404"
-        });
+    useEffect(() => {
+        (async () => {
+            await ky.get("http://127.0.0.1:5000/Courses" + query).then(resp => resp.json()).then((data) => setCourse(data)).catch(() => {
+                window.location.href = "/404"
+            });
 
+        })()
     }, [])
 
-    function termCodeToTerm(termCode) {
+    function termCodeToTerm(termCode: string) {
         var term = "20" + termCode.substring(1, 3) + " ";
         switch (termCode[3]) {
             case "0":
@@ -130,7 +172,7 @@ export default function Course() {
                                     onChange={handleChangeSemester}
                                     label="Semester"
                             >
-                                {course.terms?.map((item) => {
+                                {course?.terms?.map((item) => {
                                     return (
                                         <MenuItem key={item} value={item}>
                                             {termCodeToTerm(item)}
@@ -143,9 +185,9 @@ export default function Course() {
                     <Typography variant="subtitle1" gutterBottom
                                 className={classes.description}>{course ? course.description : ""}</Typography>
                     <Typography variant="h5" gutterBottom
-                                className={classes.title}>Requirements: {course.rqrmntDescr}</Typography>
+                                className={classes.title}>Requirements: {course?.rqrmntDescr}</Typography>
                     <Button disabled={!(course)} variant="contained"
-                            href={`https://courseoutline.auckland.ac.nz/dco/course/${course.subject}/${course.catalogNbr}/${semesterSelected}`}
+                            href={`https://courseoutline.auckland.ac.nz/dco/course/${course?.subject}/${course?.catalogNbr}/${semesterSelected}`}
                             className={classes.button}>syllabus</Button>
                 </Box>
             </Box>
@@ -166,7 +208,7 @@ export default function Course() {
                                 onChange={handleChangeSection}
                                 label="Section"
                         >
-                            {semester.sections?.map((item) => {
+                            {semester?.sections?.map((item) => {
                                 return (
                                     <MenuItem key={item} value={item}>
                                         {item}
@@ -187,7 +229,7 @@ export default function Course() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {section.meetingPatterns.map((meetingPattern) => (
+                        {section?.meetingPatterns.map((meetingPattern) => (
                             <TableRow key={meetingPattern.meetingNumber}>
                                 <TableCell component="th" scope="row">
                                     {meetingPattern.startDate + " -- " + meetingPattern.endDate}

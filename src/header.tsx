@@ -12,6 +12,7 @@ import Link from '@material-ui/core/Link';
 import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
 import ky from "ky";
+import {Profile} from "./App";
 
 const useStyles = makeStyles((theme) => ({
     header: {
@@ -94,13 +95,13 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-export default function SearchAppBar(props) {
+export default function SearchAppBar(props: { profile: Profile }) {
     const classes = useStyles();
     const [value, setValue] = useState(0);
-    const [anchorEl, setAnchorEl] = React.useState(null);
+    const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const jwt_token = document.cookie.replace(/(?:(?:^|.*;\s*)jwt\s*\=\s*([^;]*).*$)|^.*$/, "$1");
     const refresh_token = document.cookie.replace(/(?:(?:^|.*;\s*)refreshToken\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-    const handleClick = (event) => {
+    const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
         setAnchorEl(event.currentTarget);
     };
     const handleClose = () => {
@@ -128,8 +129,8 @@ export default function SearchAppBar(props) {
         window.location.href = "/"
     };
 
-    function search(e) {
-        if (e.keyCode == 13) window.location.href = "/search/" + e.target.value
+    function search(e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) {
+        if (e.key === "Enter") window.location.href = "/search/" + (e.target as HTMLTextAreaElement).value;
     }
 
     return (
@@ -156,13 +157,13 @@ export default function SearchAppBar(props) {
                                 root: classes.inputRoot,
                                 input: classes.inputInput,
                             }}
-                            onChange={(e) => setValue(e.target.value)}
-                            onKeyDown={search}
+                            onChange={(e) => setValue(+e.target.value)}
+                            onKeyDown={(e) => search(e)}
                         />
                     </div>
                     {
                         props.profile ? <Link onClick={handleClick}><Avatar alt="CourseWiki" className={classes.user}
-                                                                            src={props.profile ? props.profile.pic : ""}>{props.profile.nickName.substring(0, 2).toUpperCase()}</Avatar>
+                                                                            src={""}>{props.profile.nickName.substring(0, 2).toUpperCase()}</Avatar>
                             </Link> :
                             <Button variant="outlined" href="/login" className={classes.login}>Log In</Button>
 

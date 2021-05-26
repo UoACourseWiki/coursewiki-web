@@ -2,7 +2,10 @@ import React, {useState} from "react";
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import TextField from '@material-ui/core/TextField';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Checkbox from '@material-ui/core/Checkbox';
 import Link from '@material-ui/core/Link';
+import Grid from '@material-ui/core/Grid';
 import Box from '@material-ui/core/Box';
 import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
@@ -46,24 +49,34 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-export default function PasswordReset() {
+export default function Login() {
     const classes = useStyles();
     const [email, SetEmail] = useState('');
+    const [password, SetPassword] = useState('');
     const [succeedMessage, SetSucceedMessage] = useState(false);
     const [failedMessage, SetFailedMessage] = useState(false);
     const [alertMessage, SetAlertMessage] = useState('');
     const [isWaiting, SetIsWaiting] = useState(false);
-    const handleSubmit = async (event) => {
+    const handleSubmit = async (event: { preventDefault: () => void; }) => {
         event.preventDefault();
-        await ky.post("http://127.0.0.1:5000/Users/forgot-password", {
+        await ky.post("http://127.0.0.1:5000/Users/authenticate", {
             json: {
-                "email": email
+                "email": email,
+                "password": password
             },
             hooks: {
                 afterResponse: [
                     async (request, options, response) => {
-                        if (response.status === 200) {
+                        if (response.status === 401) {
                             await response.json().then((data) => SetAlertMessage(data.message));
+                            SetIsWaiting(false);
+                            SetFailedMessage(true);
+                        } else if (response.status === 200) {
+                            await response.json().then((data) => {
+                                SetAlertMessage("SuccessFully Logged In!")
+                                document.cookie = `jwt=${data.jwtToken}`;
+                                document.cookie = `refreshToken=${data.refreshToken}`;
+                            });
                             SetFailedMessage(false);
                             SetSucceedMessage(true);
                         } else {
@@ -87,7 +100,7 @@ export default function PasswordReset() {
                 {/*    <LockOutlinedIcon />*/}
                 {/*</Avatar>*/}
                 <Typography component="h1" variant="h5">
-                    Reset your password
+                    Sign in to CourseWiki
                 </Typography>
                 <Snackbar open={succeedMessage} autoHideDuration={1000}>
                     <MuiAlert elevation={6} variant="filled" severity="success" action={<IconButton
@@ -97,7 +110,6 @@ export default function PasswordReset() {
                         onClick={() => {
                             SetSucceedMessage(false);
                             window.location.href = "/";
-
                         }}
                     >
                         <CloseIcon fontSize="inherit"/>
@@ -129,6 +141,23 @@ export default function PasswordReset() {
                         value={email}
                         onChange={e => SetEmail(e.target.value)}
                     />
+                    <TextField
+                        variant="outlined"
+                        margin="normal"
+                        required
+                        fullWidth
+                        name="password"
+                        label="Password"
+                        type="password"
+                        id="password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={e => SetPassword(e.target.value)}
+                    />
+                    <FormControlLabel
+                        control={<Checkbox value="remember" color="primary"/>}
+                        label="Remember me"
+                    />
                     <Button
                         type="submit"
                         fullWidth
@@ -138,8 +167,20 @@ export default function PasswordReset() {
                         onClick={handleSubmit}
                         disabled={isWaiting}
                     >
-                        Send password reset email
+                        Sign In
                     </Button>
+                    <Grid container>
+                        <Grid item xs>
+                            <Link href="/password_reset" variant="body2">
+                                Forgot password?
+                            </Link>
+                        </Grid>
+                        <Grid item>
+                            <Link href="/join" variant="body2">
+                                {"Don't have an account? Sign Up"}
+                            </Link>
+                        </Grid>
+                    </Grid>
                 </form>
             </div>
             <Box mt={8}>
